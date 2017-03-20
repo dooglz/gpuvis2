@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Napier D3 Group">
+	<meta name="author" content="Edinburgh Napier School Of Computing">
+	<meta name="keywords" content="D3,visualization">
+	<title>GPUVIS</title>
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7"
+	 crossorigin="anonymous">
+	<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+	<div class="container" id="mainContainerDiv">
+		<div id="outercontainer" class="outercontainer">
+
+			<div class="visContainer" id="visContainerDiv">
+			</div>
+		</div>
+		<div class="controlContainer" id="controlContainerDiv">
+			<button type="button" onclick='InitVis()'>WaveFront View</button>
+			<button type="button" onclick='ShowCuvis()'>Compute Unit View</button> CU colour Code:
+			<input type="checkbox" id="cbox1" value="checkbox1" onchange="{showWfCu = !showWfCu}"> Show Memory:
+			<input type="checkbox" id="cbox2" value="checkbox2" onchange="handleMemCheck(this);">
+		</div>
+		</hr>
+		<div class="controlContainer" id="filesDiv">
+			<input type='file' accept='text/plain' onchange='openFileFromDisk(event)'>
+		</div>
+		<div class="controlContainer" id="devicesDiv">
+			<input type='file' accept='text/plain' onchange='openDeviceFromDisk(event)'>
+		</div>
+	</div>
+	<div id="loading-indicator" style="display:none">
+		<img src="img/loading.gif" id="loading-indicator" /><br>
+		<span id="load-Text"></span>
+	</div>
+
+	<script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
+	 crossorigin="anonymous"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+	 crossorigin="anonymous"></script>
+	<script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+	<script src="https://d3js.org/d3-hierarchy.v1.min.js"></script>
+	<script type="text/javascript" src="js/taskchart.js"></script>
+	<script type="text/javascript" src="js/utils.js"></script>
+	<script type="text/javascript" src="js/memoryview.js"></script>
+	<script type="text/javascript" src="js/main.js"></script>
+	<script type="text/javascript" src="js/vis.js"></script>
+
+</body>
+
+</html>
