@@ -1,8 +1,8 @@
 /* global d3, INSTRUCTIONTYPE, Instuctions, InitVis, TaskChart, metrics */
 /* exported InitVis*/
 
-let catagoryColourScale20 = d3.scale.category20();
-let catagoryColourScale10 = d3.scale.category10();
+let catagoryColourScale20 = d3.scaleOrdinal(d3.schemeCategory20);
+let catagoryColourScale10 = d3.scaleOrdinal(d3.schemeCategory10);
 
 /** Colour by d.type.value*/
 function colourScalefunc(d) {
@@ -69,7 +69,7 @@ function deviceJsontoD3data(device) {
 var partition = d3.layout.partition()
   .value(function(d) { return d.size; });
 */
-var w, h, x, y, svg, dcontainer, jcontainer;
+var w, h, x, y, svg, dcontainer, jcontainer, cell;
 
 var format = d3.format(",d");
 //var color = d3.scaleOrdinal(d3.schemeCategory10);
@@ -80,8 +80,8 @@ function InitVis(DEVICE) {
   jcontainer = $("#visContainerDiv");
   w = jcontainer.width();
   h = jcontainer.height();
-  x = d3.scale.linear().range([0, w]);
-  y = d3.scale.linear().range([0, h]);
+  x = d3.scaleLinear().range([0, w]);
+  y = d3.scaleLinear().range([0, h]);
 
   svg = dcontainer.append("svg:svg");
   svg.attr("width", w).attr("height", h);
@@ -94,7 +94,7 @@ function InitVis(DEVICE) {
 
   partition(root);
 
-  var cell = svg
+  cell = svg
     .selectAll(".node")
     .data(root.descendants())
     .enter().append("g")
@@ -128,35 +128,55 @@ function InitVis(DEVICE) {
   //d3.select(window).on("click", function() { click(root); })
 
   function click(d) {
+    var elem = d;
     if (!d.children) return;
 
-    var kx = (d.y ? w - 40 : w) / (1 - d.y);
-    var ky = h / d.dx;
-    x.domain([d.y, 1]).range([d.y ? 40 : 0, w]);
-    y.domain([d.x, d.x + d.dx]);
+    y.domain([d.x0, d.x1]);
+    x.domain([d.y0, w]);
+    // var widthscale = d3.scaleLinear().range([d.y1, w]);
 
-    console.log("Zooming on ", kx,ky,d.y,w,h,d.dx,d);
+    console.log("Zooming on ", (d.y1 - d.y0), x(d.y1), y(d.x1 - d.x0), d);
 
     var t = cell.transition()
-      .duration(d3.event.altKey ? 7500 : 750)
-      .attr("transform", function(d) { 
-        //console.log(d);
-        return "translate(" + x(d.y1) + "," + y(d.x1) + ")"; });
-/*
-    t.select("rect")
-      .attr("width", d.dy * kx)
-      .attr("height", function(d) { return d.dx * ky; });
+      .duration(1750)
+      .attr("transform", function(d) {
+        return "translate(" + x(d.y0) + "," + y(d.x0) + ")";
+      })
+      // .attr("visibility", function(d) { return (elem.descendants().includes(d) ? "visible" : "hidden"); });
+      .style("opacity", function(d) { return (elem.descendants().includes(d) ? 1.0 : 0.0); });
+    ;
 
-    t.select("text")
-      .attr("transform", transform)
-      .style("opacity", function(d) { return d.dx * ky > 12 ? 1 : 0; });
-*/
+    t.select("rect").filter(function(d) { return (elem.descendants().includes(d)); })
+      //  .attr("width", d.dy * kx)
+      .attr("width", function(d) { return x(d.y1); })
+      .attr("height", function(d) { return y(d.x1 - d.x0); });
+    /*
+        t.select("text")
+          .attr("transform", transform)
+          .style("opacity", function(d) { return d.dx * ky > 12 ? 1 : 0; });
+    */
     d3.event.stopPropagation();
   }
   function transform(d) {
     return "translate(8," + d.dx * ky / 2 + ")";
   }
 
+}
+
+function ResetZoom() {
+  y.domain([0, h]);
+  x.domain([0, w]);
+  var t = cell.transition()
+    .duration(750)
+    .attr("transform", function(d) {
+      return "translate(" + x(d.y0) + "," + y(d.x0) + ")";
+    })
+    .style("opacity", 1.0)
+    .attr("visibility", "visible");
+
+  t.select("rect")
+    .attr("width", function(d) { return d.y1 - d.y0; })
+    .attr("height", function(d) { return y(d.x1 - d.x0); });
 }
 
 var acitivityMode = true;
