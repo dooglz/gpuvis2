@@ -12,20 +12,21 @@ function colourScalefunc(d) {
   return catagoryColourScale10(d.type.value);
 }
 
-/** Colour by d.cu*/
-function colourCUfunc(d) {
-  return catagoryColourScale10(d.cu);
-}
 
-let showWfCu = false;
-let tc;
-let cuVisSvg = null;
 
-function ClearCuvis() {
-  if (cuVisSvg) {
-    cuVisSvg.remove();
+function dataDec(d) {
+  var ignore = ["children", "id", "name"];
+  var s = [];
+  for (var key in d) {
+    if (ignore.includes(key)) continue;
+    if (d.hasOwnProperty(key)) {
+      s.push(key + " - " + d[key]);
+    }
   }
+  return s;
 }
+
+
 
 function deviceJsontoD3data(device) {
   var d3d = {};
@@ -65,14 +66,10 @@ function deviceJsontoD3data(device) {
   return d3d;
 }
 
-/*
-var partition = d3.layout.partition()
-  .value(function(d) { return d.size; });
-*/
+
 var w, h, x, y, svg, dcontainer, jcontainer, cell, currentZoom, rootNode;
 var partition;
 var format = d3.format(",d");
-//var color = d3.scaleOrdinal(d3.schemeCategory10);
 
 function InitVis(DEVICE) {
   rootNode = d3.hierarchy(deviceJsontoD3data(DEVICE));
@@ -100,7 +97,7 @@ function InitVis(DEVICE) {
     .enter().append("g")
     .attr("class", function(d) { return "node" + (d.children ? " node--internal" : " node--leaf"); })
     .attr("transform", function(d) { return "translate(" + d.y0 + "," + d.x0 + ")"; })
-    .attr("visibility", function(d) { return d.x1 - d.x0 < 1.5 ? "hidden" : "visible"; });
+    .attr("visibility", function(d) { return d.x1 - d.x0 < 5 ? "hidden" : "visible"; });
 
   cell.append("rect")
     .attr("id", function(d) { return "rect-" + d.id; })
@@ -119,11 +116,21 @@ function InitVis(DEVICE) {
     .text(function(d) { return d.data.name; })
     .attr("class", "NameText");
 
-  cell.append("text")
+  var deets = cell.append("text")
     .attr("visibility", function(d) { return d.x1 - d.x0 > 30 ? "visible" : "hidden"; })
     .attr("transform", function(d) { return "translate(" + 14 + "," + 23 + ")"; })
-    .text(function(d) { return d.data.name; })
-    .attr("class", "DetailsText");
+    .attr("class", "DetailsText")
+    .each(function(d) {
+      var arr = dataDec(d.data);
+      for (i = 0; i < arr.length; i++) {
+        d3.select(this).append("tspan")
+          .text(arr[i])
+          .attr("dy", i ? "1.2em" : 0)
+          .attr("x",  14)
+          .attr("text-anchor", "left")
+          .attr("class", "tspan" + i);
+      }
+    });
 
   cell.append("title")
     .text(function(d) { return d.data.name; });
@@ -169,7 +176,7 @@ function Rebase(d) {
     .attr("transform", function(d) {
       return "translate(" + d.y0 + "," + d.x0 + ")";
     })
-    .attr("visibility", function(d) { return d.x1 - d.x0 > 1.5 && currentZoom.descendants().includes(d) ? "visible" : "hidden"; })
+    .attr("visibility", function(d) { return d.x1 - d.x0 > 5 && currentZoom.descendants().includes(d) ? "visible" : "hidden"; })
   // .style("opacity", function(d) { return (currentZoom.descendants().includes(d) ? 1.0 : 0.0); });
 
 
@@ -181,6 +188,7 @@ function Rebase(d) {
     .attr("visibility", function(d) { return d.x1 - d.x0 > 10 && currentZoom.descendants().includes(d) ? "visible" : "hidden"; });
   t.select(".DetailsText")
     .attr("visibility", function(d) { return d.x1 - d.x0 > 30 && currentZoom.descendants().includes(d) ? "visible" : "hidden"; });
+
 
 }
 
@@ -226,7 +234,7 @@ function Zoom(d) {
     .attr("transform", function(d) {
       return "translate(" + x(d.y0) + "," + y(d.x0) + ")";
     })
-    .attr("visibility", function(d) { return d.x1 - d.x0 < 1.5 ? "hidden" : "visible"; })
+    .attr("visibility", function(d) { return d.x1 - d.x0 < 5 ? "hidden" : "visible"; })
 
 
 
@@ -250,7 +258,7 @@ function ZoomUP() {
 function ResetZoom() {
   //currentZoom = rootNode;
   Zoom(rootNode);
-return;
+  return;
   y.domain([0, h]);
   x.domain([0, w]);
   var t = cell.transition()
