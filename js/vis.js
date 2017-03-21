@@ -97,7 +97,7 @@ function InitVis(DEVICE) {
     .enter().append("g")
     .attr("class", function(d) { return "node" + (d.children ? " node--internal" : " node--leaf"); })
     .attr("transform", function(d) { return "translate(" + d.y0 + "," + d.x0 + ")"; })
-    .attr("visibility", function(d) { return d.x1 - d.x0 < 5 ? "hidden" : "visible"; });
+    .attr("visibility", function(d) { return d.x1 - d.x0 < 2 ? "hidden" : "visible"; });
 
   cell.append("rect")
     .attr("id", function(d) { return "rect-" + d.id; })
@@ -169,25 +169,27 @@ function Rebase(d) {
   partition(d);
   console.log("Rebased on  ", d.data.name, d.children[0].y0, d);
   currentZoom = d;
+  var decs =  currentZoom.descendants();
+
   // cell.data(d.descendants());
 
-  var t = cell.transition()
+  var t = cell
     // .duration(1750)
     .attr("transform", function(d) {
       return "translate(" + d.y0 + "," + d.x0 + ")";
     })
-    .attr("visibility", function(d) { return d.x1 - d.x0 > 5 && currentZoom.descendants().includes(d) ? "visible" : "hidden"; })
+    .attr("visibility", function(d) { return d.x1 - d.x0 > 2 && decs.includes(d) ? "visible" : "hidden"; })
   // .style("opacity", function(d) { return (currentZoom.descendants().includes(d) ? 1.0 : 0.0); });
 
 
-  t.select("rect").filter(function(d) { return (currentZoom.descendants().includes(d)); })
+  t.select("rect").filter(function(d) { return (decs.includes(d)); })
     .attr("width", function(d) { return d.y1 - d.y0; })
     .attr("height", function(d) { return d.x1 - d.x0; })
 
   t.select(".NameText")
-    .attr("visibility", function(d) { return d.x1 - d.x0 > 10 && currentZoom.descendants().includes(d) ? "visible" : "hidden"; });
+    .attr("visibility", function(d) { return d.x1 - d.x0 > 10 && decs.includes(d) ? "visible" : "hidden"; });
   t.select(".DetailsText")
-    .attr("visibility", function(d) { return d.x1 - d.x0 > 30 && currentZoom.descendants().includes(d) ? "visible" : "hidden"; });
+    .attr("visibility", function(d) { return d.x1 - d.x0 > 30 && decs.includes(d) ? "visible" : "hidden"; });
 
 
 }
@@ -261,8 +263,7 @@ function ResetZoom() {
   return;
   y.domain([0, h]);
   x.domain([0, w]);
-  var t = cell.transition()
-    .duration(750)
+  var t = cell
     .attr("transform", function(d) {
       return "translate(" + x(d.y0) + "," + y(d.x0) + ")";
     })

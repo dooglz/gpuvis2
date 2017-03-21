@@ -58,7 +58,7 @@ function go2() {
 
 }
 
-function Init(file) {
+function ParseTrace(file) {
   CloseMemvis();
   loadingDiv.show();
   console.log(file.substring(0, 200));
@@ -120,7 +120,7 @@ function OpenFileFromXHR(name, device) {
       if (device === true) {
         ParseDevice(json);
       } else {
-        Init(json);
+        ParseTrace(json);
       }
     })
     .fail(function(jqxhr, textStatus, error) {
