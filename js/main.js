@@ -3,6 +3,7 @@
 /* exported InitVis*/
 var totalChartSpaceHeight;
 var DEVICE;
+var TRACE;
 
 $(document).ready(function() {
   GetFilesList();
@@ -59,11 +60,13 @@ function go2() {
 }
 
 function ParseTrace(file) {
-  CloseMemvis();
-  loadingDiv.show();
-  console.log(file.substring(0, 200));
-  parser = ParseTrace(file);
-  Init2();
+  TRACE = file;
+ // CloseMemvis();
+  //loadingDiv.show();
+  //console.log(file.substring(0, 200));
+  //parser = ParseTrace(file);
+ // Init2();
+ MergeTraceData(file);
 }
 
 
@@ -196,112 +199,6 @@ function parseToObj(line) {
 var Instuctions;
 var memops;
 var metrics;
-function* ParseTrace(trace) {
-  var allTextLines = [];
-  allTextLines = trace.split(/\r\n|\n/);
-  trace = "";
-  var clock = 0;
-  var startTick = -1;
-  var mostCU = 0;
-  var mostWF = 0;
-  Instuctions = [];
-  memops = [];
-  metrics = {};
-  metrics.wavefronts = [];
-  for (var i = 0; i < allTextLines.length; ++i) {
-    if (i > 0 && i % 4000 == 0) {
-      yield ((i / allTextLines.length) * 100);
-    }
-    let v = allTextLines[i].trim()
-    if (v.startsWith("c clk=")) {
-      // clock
-      clock = parseInt(v.substring(6), 10);
-      if (startTick === -1) {
-        startTick = clock;
-      }
-    } else if (v.startsWith("mem.new_access name=")) {
-      let om = parseToObj(v);
-      om.start = clock;
-      om.memoryRoute = {};
-      memops.push(om);
-    } else if (v.startsWith("mem.end_access name=")) {
-      let om = parseToObj(v);
-      let inst = undefined;
-      for (let j = memops.length; j > 0; --j) {
-        if (memops[j - 1].name === om.name) {
-          inst = memops[j - 1];
-          break;
-        }
-      }
-      if (inst === undefined) {
-        console.error(om.name);
-      } else {
-        inst.end = clock;
-      }
-    } else if (v.startsWith("mem.access")) {
-      let om = parseToObj(v);
-      let inst = undefined;
-      for (let j = memops.length; j > 0; --j) {
-        if (memops[j - 1].name === om.name) {
-          inst = memops[j - 1];
-          break;
-        }
-      }
-      if (inst !== undefined && om.state !== undefined) {
-        let re = /((LDS)|si-(\w*)-)/;
-        let m;
-        if ((m = re.exec(om.state)) !== null) {
-          if (m.index === re.lastIndex) {
-            re.lastIndex++;
-          }
-          m = (m[2] === undefined ? m[3] : m[2]);
-          inst.memoryRoute[m] === undefined ? inst.memoryRoute[m] = 0 : inst.memoryRoute[m]++;
-        }
-      } else {
-        console.error(om.name);
-      }
-    } else if (v.startsWith("mem")) {
-
-    } else if (v.startsWith("si.new_inst")) {
-      let oo = parseToObj(v);
-      mostCU = oo.cu > mostCU ? oo.cu : mostCU;
-      mostWF = oo.wf > mostWF ? oo.wf : mostWF;
-      if (metrics.wavefronts[oo.wf] === undefined) {
-        metrics.wavefronts[oo.wf] = {};
-        metrics.wavefronts[oo.wf].cu = oo.cu;
-      }
-      let type = detemineAsmType(oo.asm);
-      // Instuctions.set(oo.id + "_" + oo.cu, new InstructionInstance(oo.id, oo.cu, oo.wf, clock, oo.asm, type));
-      Instuctions.push(new InstructionInstance(oo.id, oo.cu, oo.wf, clock, oo.asm, type));
-    } else if (v.startsWith("si.inst")) {
-      // parseToObj(v);
-    } else if (v.startsWith("si.end_inst")) {
-      let oo = parseToObj(v);
-      let inst = undefined;
-      for (let j = Instuctions.length; j > 0; --j) {
-        if (oo.id === Instuctions[j - 1].id && oo.cu === Instuctions[j - 1].cu) {
-          inst = Instuctions[j - 1];
-          break;
-        }
-      }
-      if (inst === undefined) {
-        console.error(oo.id + "_" + oo.cu);
-      } else {
-        inst.end = clock;
-      }
-
-    } else {
-      console.warn("unkown line: ", i, v);
-    }
-  }
-
-  metrics.wfCount = mostWF + 1;
-  metrics.cuCount = mostCU + 1;
-  metrics.cu = new Array(mostCU + 1);
-  metrics.startTick = startTick;
-  metrics.endTick = clock;
-  metrics.ticks = clock - startTick;
-}
 
 var cuocc;
 function* CalcMetrics(trace2) {

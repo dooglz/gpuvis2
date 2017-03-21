@@ -28,6 +28,8 @@ function dataDec(d) {
 
 
 
+
+
 function deviceJsontoD3data(device) {
   var d3d = {};
   d3d.name = device.name;
@@ -70,6 +72,22 @@ function deviceJsontoD3data(device) {
 var w, h, x, y, svg, dcontainer, jcontainer, cell, currentZoom, rootNode;
 var partition;
 var format = d3.format(",d");
+
+function Update() {
+  var t = cell.select(".DetailsText");
+  t.selectAll("*").remove();
+  t.each(function(d) {
+    var arr = dataDec(d.data);
+    for (i = 0; i < arr.length; i++) {
+      d3.select(this).append("tspan")
+        .text(arr[i])
+        .attr("dy", i ? "1.2em" : 0)
+        .attr("x", 14)
+        .attr("text-anchor", "left")
+        .attr("class", "tspan" + i);
+    }
+  });
+}
 
 function InitVis(DEVICE) {
   rootNode = d3.hierarchy(deviceJsontoD3data(DEVICE));
@@ -126,7 +144,7 @@ function InitVis(DEVICE) {
         d3.select(this).append("tspan")
           .text(arr[i])
           .attr("dy", i ? "1.2em" : 0)
-          .attr("x",  14)
+          .attr("x", 14)
           .attr("text-anchor", "left")
           .attr("class", "tspan" + i);
       }
@@ -169,7 +187,7 @@ function Rebase(d) {
   partition(d);
   console.log("Rebased on  ", d.data.name, d.children[0].y0, d);
   currentZoom = d;
-  var decs =  currentZoom.descendants();
+  var decs = currentZoom.descendants();
 
   // cell.data(d.descendants());
 
@@ -238,8 +256,6 @@ function Zoom(d) {
     })
     .attr("visibility", function(d) { return d.x1 - d.x0 < 5 ? "hidden" : "visible"; })
 
-
-
   t.select("rect").filter(function(d) { return (currentZoom.descendants().includes(d)); })
     .attr("width", function(d) { return x(d.y1) - x(d.y0); })
     .attr("height", function(d) { return y(d.x1) - y(d.x0); });
@@ -279,3 +295,66 @@ function ResetZoom() {
   t.select(".DetailsText")
     .attr("visibility", function(d) { return y(d.x1) - y(d.x0) > 30 ? "visible" : "hidden"; });
 }
+
+
+function getiCU(id) {
+  for (var i = 0; i < rootNode.children.length; i++) {
+    if (rootNode.children[i].data.id === id) return rootNode.children[i];
+  }
+}
+
+function getiSIMD(cui, id) {
+  var cu = getiCU(cui);
+  for (var i = 0; i < cu.children.length; i++) {
+    if (cu.children[i].data.id === id) return cu.children[i];
+  }
+}
+function getSIMD(cu, id) {
+  for (var i = 0; i < cu.children.length; i++) {
+    if (cu.children[i].data.id === id) return cu.children[i];
+  }
+}
+
+function getiLane(cui, smi, id) {
+  var sm = getiSIMD(cui, smi);
+  if (id == -1) {
+    var ret = [];
+    for (var i = 0; i < sm.children.length; i++) {
+      ret.push(sm.children[i]);
+    }
+    return ret;
+  }
+  for (var i = 0; i < sm.children.length; i++) {
+    if (sm.children[i].data.id === id) return sm.children[i];
+  }
+}
+
+function getLane(sm, id) {
+  if (id == -1) {
+    var ret = [];
+    for (var i = 0; i < sm.children.length; i++) {
+      ret.push(sm.children[i]);
+    }
+    return ret;
+  }
+  for (var i = 0; i < si.children.length; i++) {
+    if (si.children[i].data.id === id) return si.children[i];
+  }
+}
+
+function MergeTraceData(trace) {
+  for (var wgi = 0; wgi < trace.workgroups.length; wgi++) {
+    var wg = trace.workgroups[wgi];
+    for (var wvi = 0; wvi < wg.waves.length; wvi++) {
+      var wv = wg.waves[wvi];
+      var lanes = getiLane(wv.cu_id, wv.simd_id, -1);
+      for (var lni = 0; lni < lanes.length; lni++) {
+        lanes[lni].data.pc = wv.program_counter;
+        lanes[lni].data.wave = wv.wave_id;
+        lanes[lni].data.wg = wgi;
+      }
+    }
+  }
+  console.log("done");
+}
+
