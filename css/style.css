@@ -69,7 +69,8 @@ html{
 .node {
     fill: #ccc;
     stroke: black;
-    stroke-width: 2px;
+    /*stroke-width: 2px;*/
+		font-size: 10px;
 }
 
 .link {

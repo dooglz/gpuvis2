@@ -12,6 +12,7 @@ $(document).ready(function() {
     INSTRUCTIONTYPEARR.push(INSTRUCTIONTYPE[propt]);
   }
   totalChartSpaceHeight = parseInt(d3.select("#outercontainer").style("height"), 10);
+    $("#filesDiv").hide();
 });
 
 class ComputeUnitOccupancy {
@@ -70,6 +71,8 @@ function Init(file) {
 function ParseDevice(dev) {
   console.log("Loaded device: " + dev.name);
   DEVICE = dev;
+  InitVis(DEVICE);
+  $("#filesDiv").show();
 }
 
 function Init2() {

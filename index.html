@@ -21,11 +21,8 @@
 			</div>
 		</div>
 		<div class="controlContainer" id="controlContainerDiv">
-			<button type="button" onclick='InitVis()'>WaveFront View</button>
-			<button type="button" onclick='ShowCuvis()'>Compute Unit View</button> CU colour Code:
-			<input type="checkbox" id="cbox1" value="checkbox1" onchange="{showWfCu = !showWfCu}"> Show Memory:
-			<input type="checkbox" id="cbox2" value="checkbox2" onchange="handleMemCheck(this);">
 			<button type="button" onclick='ResetZoom()'>ResetZoom</button>
+			<button type="button" onclick='ZoomUP()'>Back</button>
 			<button type="button" onclick='go()'>Arm</button>
 			<button type="button" onclick='go2()'>Fire</button>
 		</div>
@@ -33,9 +30,11 @@
 		<div class="controlContainer" id="filesDiv">
 			<input type='file' accept='text/plain' onchange='openFileFromDisk(event)'>
 		</div>
+		<hr>
 		<div class="controlContainer" id="devicesDiv">
 			<input type='file' accept='text/plain' onchange='openDeviceFromDisk(event)'>
 		</div>
+		<hr>
 	</div>
 	<div id="loading-indicator" style="display:none">
 		<img src="img/loading.gif" id="loading-indicator" /><br>
@@ -50,7 +49,6 @@
 	<script type="text/javascript" src="js/utils.js"></script>
 	<script type="text/javascript" src="js/main.js"></script>
 	<script type="text/javascript" src="js/vis.js"></script>
-	1
 </body>
 
 </html>
