@@ -90,7 +90,7 @@ function InitVis(DEVICE) {
   partition = d3.partition()
     .size([h, w])
     .padding(1)
-    .round(true);
+    .round(false);
 
   partition(rootNode);
   currentZoom = rootNode;
@@ -99,7 +99,8 @@ function InitVis(DEVICE) {
     .data(rootNode.descendants())
     .enter().append("g")
     .attr("class", function(d) { return "node" + (d.children ? " node--internal" : " node--leaf"); })
-    .attr("transform", function(d) { return "translate(" + d.y0 + "," + d.x0 + ")"; });
+    .attr("transform", function(d) { return "translate(" + d.y0 + "," + d.x0 + ")"; })
+    .attr("visibility", function(d) { return d.x1 - d.x0 < 1.5 ? "hidden" : "visible"; });
 
   cell.append("rect")
     .attr("id", function(d) { return "rect-" + d.id; })
@@ -110,19 +111,19 @@ function InitVis(DEVICE) {
   cell.append("clipPath")
     .attr("id", function(d) { return "clip-" + d.id; })
     .append("use")
-    .attr("xlink:href", function(d) { return "#rect-" + d.id + ""; });
+    .attr("xlink:href", function(d) { return "#rect-" + d.id + ""; })
 
   cell.append("text")
-    .style("opacity", function(d) { return d.x1 - d.x0 > 10 ? 1 : 0; })
+    .attr("visibility", function(d) { return d.x1 - d.x0 > 10 ? "visible" : "hidden"; })
     .attr("transform", function(d) { return "translate(" + 4 + "," + 10 + ")"; })
     .text(function(d) { return d.data.name; })
-    .attr("class","NameText");
+    .attr("class", "NameText");
 
   cell.append("text")
-    .style("opacity", function(d) { return d.x1 - d.x0 > 30 ? 1 : 0; })
+    .attr("visibility", function(d) { return d.x1 - d.x0 > 30 ? "visible" : "hidden"; })
     .attr("transform", function(d) { return "translate(" + 14 + "," + 23 + ")"; })
     .text(function(d) { return d.data.name; })
-    .attr("class","DetailsText");
+    .attr("class", "DetailsText");
 
   cell.append("title")
     .text(function(d) { return d.data.name; });
@@ -136,25 +137,97 @@ function InitVis(DEVICE) {
 
 }
 
+var rebaseTally = 0;
+var rebasetarget;
+function Rebase(d) {
+  console.log("Rebasing on  ", d.data.name, d.children[0].y0, d);
+
+  var depth = d.depth;
+  var rebaser = function(d) { d.depth -= depth; };
+
+  if (rebaseTally != 0) {
+    console.log("undoing previous rebase on ", rebasetarget.data.name, rebasetarget);
+    depth = -rebaseTally;
+    rebasetarget.eachBefore(rebaser);
+    rebaseTally = 0;
+    rebasetarget = null;
+  }
+
+  depth = d.depth;
+  rebasetarget = d;
+  d.eachBefore(rebaser);
+
+  rebaseTally = depth;
+
+  partition(d);
+  console.log("Rebased on  ", d.data.name, d.children[0].y0, d);
+  currentZoom = d;
+  // cell.data(d.descendants());
+
+  var t = cell.transition()
+    // .duration(1750)
+    .attr("transform", function(d) {
+      return "translate(" + d.y0 + "," + d.x0 + ")";
+    })
+    .attr("visibility", function(d) { return d.x1 - d.x0 > 1.5 && currentZoom.descendants().includes(d) ? "visible" : "hidden"; })
+  // .style("opacity", function(d) { return (currentZoom.descendants().includes(d) ? 1.0 : 0.0); });
+
+
+  t.select("rect").filter(function(d) { return (currentZoom.descendants().includes(d)); })
+    .attr("width", function(d) { return d.y1 - d.y0; })
+    .attr("height", function(d) { return d.x1 - d.x0; })
+
+  t.select(".NameText")
+    .attr("visibility", function(d) { return d.x1 - d.x0 > 10 && currentZoom.descendants().includes(d) ? "visible" : "hidden"; });
+  t.select(".DetailsText")
+    .attr("visibility", function(d) { return d.x1 - d.x0 > 30 && currentZoom.descendants().includes(d) ? "visible" : "hidden"; });
+
+}
+
 function Zoom(d) {
   if (!d.children) return;
-  if(currentZoom == d){
+  if (currentZoom == d) {
     ZoomUP();
     return;
   }
-  currentZoom = d;
+  if (!d.descendants().includes(currentZoom) && !currentZoom.descendants().includes(d)) {
+    console.log("No Sideways zooming pls");
+    return;
+  }
+
+  Rebase(d);
+  return;
+
+  //are we moving up or down?
+  var up = currentZoom.ancestors().includes(d);
+
+  if (!up && ((d.children[0].x1 - d.children[0].x0) < 5)) {
+    //if we are moving down, check if we need to rebase the partitions
+    if (d.children[0].x1 - d.children[0].x0 < 5) {
+      console.log("TOO SMALL! ", d.children[0].x1 - d.children[0].x0);
+      //REBASE
+      //d.count();
+      Rebase(d);
+      return;
+    }
+  }
+  //if(up)
 
   y.domain([d.x0, d.x1]);
   x.domain([d.y0, w]);
+  currentZoom = d;
 
-  console.log("Zooming on ", (d.y1 - d.y0), x(d.y1), y(d.x1 - d.x0), d);
+
+
+  console.log("Zooming on ", up, (d.y1 - d.y0), x(d.y1), y(d.x1 - d.x0), d);
 
   var t = cell.transition()
     .duration(1750)
     .attr("transform", function(d) {
       return "translate(" + x(d.y0) + "," + y(d.x0) + ")";
     })
-    .style("opacity", function(d) { return (currentZoom.descendants().includes(d) ? 1.0 : 0.0); });
+    .attr("visibility", function(d) { return d.x1 - d.x0 < 1.5 ? "hidden" : "visible"; })
+
 
 
   t.select("rect").filter(function(d) { return (currentZoom.descendants().includes(d)); })
@@ -162,9 +235,9 @@ function Zoom(d) {
     .attr("height", function(d) { return y(d.x1) - y(d.x0); });
 
   t.select(".NameText")
-    .style("opacity", function(d) { return y(d.x1) - y(d.x0) > 10 ? 1 : 0; });
+    .attr("visibility", function(d) { return y(d.x1) - y(d.x0) > 10 ? "visible" : "hidden"; });
   t.select(".DetailsText")
-    .style("opacity", function(d) { return y(d.x1) - y(d.x0) > 30 ? 1 : 0; });
+    .attr("visibility", function(d) { return y(d.x1) - y(d.x0) > 30 ? "visible" : "hidden"; });
   //d3.event.stopPropagation();
 }
 
@@ -175,7 +248,9 @@ function ZoomUP() {
 }
 
 function ResetZoom() {
-  currentZoom = rootNode;
+  //currentZoom = rootNode;
+  Zoom(rootNode);
+return;
   y.domain([0, h]);
   x.domain([0, w]);
   var t = cell.transition()
@@ -191,7 +266,7 @@ function ResetZoom() {
     .attr("height", function(d) { return y(d.x1 - d.x0); });
 
   t.select(".NameText")
-    .style("opacity", function(d) { return y(d.x1) - y(d.x0) > 10 ? 1 : 0; });
+    .attr("visibility", function(d) { return y(d.x1) - y(d.x0) > 10 ? "visible" : "hidden"; });
   t.select(".DetailsText")
-    .style("opacity", function(d) { return y(d.x1) - y(d.x0) > 30 ? 1 : 0; });
+    .attr("visibility", function(d) { return y(d.x1) - y(d.x0) > 30 ? "visible" : "hidden"; });
 }
