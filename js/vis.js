@@ -3,6 +3,7 @@
 
 let catagoryColourScale20 = d3.scaleOrdinal(d3.schemeCategory20);
 let catagoryColourScale10 = d3.scaleOrdinal(d3.schemeCategory10);
+var hotcolorScale = d3.scaleLinear().domain([0, 1]).range(["white", "red"]);
 
 /** Colour by d.type.value*/
 function colourScalefunc(d) {
@@ -15,12 +16,12 @@ function colourScalefunc(d) {
 
 
 function dataDec(d) {
-  var ignore = ["children", "id", "name"];
+  var ignore = ["children", "id", "name","type"];
   var s = [];
   for (var key in d) {
     if (ignore.includes(key)) continue;
     if (d.hasOwnProperty(key)) {
-      s.push(key + " - " + d[key]);
+      s.push(key + ": " + d[key]);
     }
   }
   return s;
@@ -43,6 +44,7 @@ function deviceJsontoD3data(device) {
     CU.id = i;
     CU.name = CU.type + " " + i;
     CU.GDS = device.GDS + "KB";
+    CU.wgs = [];
     CU.children = [];
     for (var j = 0; j < device.SIMD; j++) {
       var SM = {};
@@ -50,9 +52,18 @@ function deviceJsontoD3data(device) {
       SM.id = j;
       SM.name = SM.type + " " + i + "," + j;
       SM.LDS = device.LDS + "KB";
+      SM.wgs = [];
       SM.children = [];
       for (var g = 0; g < device.SIMD_LANES; g++) {
-        SM.children.push({ type: "SIMD LANE", id: g, name: "Lane " + g });
+        var lane = {};
+        lane.type = "SIMD LANE";
+        lane.id = g;
+        lane.name = "Lane " + g;
+        lane.pc = "";
+        lane.wave = -1;
+        lane.wg = -1;
+        lane.occu = 0.0;
+        SM.children.push(lane);
       }
       CU.children.push(SM);
     }
@@ -87,7 +98,16 @@ function Update() {
         .attr("class", "tspan" + i);
     }
   });
+  codeOccu();
 }
+
+function codeOccu() {
+  cell.select("rect").style("fill", function(d) { return hotcolorScale(d.data.occu); });
+}
+function codeAlloc() {
+  cell.select("rect").style("fill", function(d) { return hotcolorScale(d.data.occu); });
+}
+
 
 function InitVis(DEVICE) {
   rootNode = d3.hierarchy(deviceJsontoD3data(DEVICE));
@@ -337,8 +357,8 @@ function getLane(sm, id) {
     }
     return ret;
   }
-  for (var i = 0; i < si.children.length; i++) {
-    if (si.children[i].data.id === id) return si.children[i];
+  for (var i = 0; i < sm.children.length; i++) {
+    if (sm.children[i].data.id === id) return sm.children[i];
   }
 }
 
@@ -347,14 +367,48 @@ function MergeTraceData(trace) {
     var wg = trace.workgroups[wgi];
     for (var wvi = 0; wvi < wg.waves.length; wvi++) {
       var wv = wg.waves[wvi];
-      var lanes = getiLane(wv.cu_id, wv.simd_id, -1);
-      for (var lni = 0; lni < lanes.length; lni++) {
+      var CU = getiCU(wv.cu_id);
+      if (!CU.data.wgs.includes(wgi)) CU.data.wgs.push(wgi);
+      var simd = getSIMD(CU, wv.simd_id);
+   //  simd.data.wg = wgi;
+      if (!simd.data.wgs.includes(wgi)) simd.data.wgs.push(wgi);
+      var lanes = getLane(simd, -1);
+      var lni = wv.se_id;
+      //for (var lni = 0; lni < lanes.length; lni++) {
         lanes[lni].data.pc = wv.program_counter;
         lanes[lni].data.wave = wv.wave_id;
+        if (lanes[lni].data.wg != -1) {
+          console.log("CLASH", wv.cu_id, wv.simd_id, lni, lanes[lni].data.wg, wgi);
+        }
         lanes[lni].data.wg = wgi;
-      }
+        lanes[lni].data.occu = 1.0;
+     // }
     }
   }
+  console.log("Merged");
+  //Calculate occupancy
+  var gputalley = 0;
+  for (var i = 0; i < rootNode.children.length; i++) {
+    var cu = rootNode.children[i];
+    var cutally = 0;
+    for (var j = 0; j < cu.children.length; j++) {
+      var simd = cu.children[j];
+      var tally = 0;
+      if (simd.children == undefined) continue;
+      for (var k = 0; k < simd.children.length; k++) {
+        var lane = simd.children[k];
+        if (lane.data.occu == 1.0) {
+          tally++;
+        }
+      }
+      simd.data.occu = tally / simd.children.length;
+      cutally += simd.data.occu;
+    }
+    cu.data.occu = cutally / (cu.children.length - 1); //plus 1 for scaler unit hax
+    gputalley += cu.data.occu;
+  }
+  rootNode.data.occu = gputalley / rootNode.children.length;
   console.log("done");
+  Update();
 }
 
