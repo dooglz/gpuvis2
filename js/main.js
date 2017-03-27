@@ -145,8 +145,8 @@ function GetFilesList() {
   jqxhr.fail(function(e) {
     console.log("error", e);
   });*/
-  $('<button/>').text("1488213289.json").click(function() {
-    OpenFileFromXHR("runtime_data_waves_1488213289.json", false);
+  $('<button/>').text("1490283906.json").click(function() {
+    OpenFileFromXHR("runtime_data_waves_1490283906.json", false);
   }).appendTo($("#filesDiv"));
 }
 

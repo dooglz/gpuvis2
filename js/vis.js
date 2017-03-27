@@ -13,22 +13,18 @@ function colourScalefunc(d) {
   return catagoryColourScale10(d.type.value);
 }
 
-
-
 function dataDec(d) {
-  var ignore = ["children", "id", "name","type"];
+  var ignore = ["children", "id", "name", "type"];
   var s = [];
   for (var key in d) {
     if (ignore.includes(key)) continue;
+    if (d.type == "SIMD LANE" && key == "occu") continue;
     if (d.hasOwnProperty(key)) {
       s.push(key + ": " + d[key]);
     }
   }
   return s;
 }
-
-
-
 
 
 function deviceJsontoD3data(device) {
@@ -63,6 +59,7 @@ function deviceJsontoD3data(device) {
         lane.wave = -1;
         lane.wg = -1;
         lane.occu = 0.0;
+        lane.asm = "";
         SM.children.push(lane);
       }
       CU.children.push(SM);
@@ -104,8 +101,41 @@ function Update() {
 function codeOccu() {
   cell.select("rect").style("fill", function(d) { return hotcolorScale(d.data.occu); });
 }
+
+
 function codeAlloc() {
-  cell.select("rect").style("fill", function(d) { return hotcolorScale(d.data.occu); });
+  var id = 0;
+  cell.select("rect").style("fill", function(d) {
+    if (d.data.wgs !== undefined && d.data.wgs.length > 1) {
+      var gid = "gradient" + (id++);
+      var gradient = svg.append("defs")
+        .append("linearGradient")
+        .attr("id", gid)
+        .attr("x1", "0%")
+        .attr("y1", "0%")
+        .attr("x2", "0%")
+        .attr("y2", "100%")
+        .attr("spreadMethod", "pad");
+      var total = d.data.wgs.length;
+      var step = 1.0 / total;
+      for (var index = 0; index < total; index++) {
+        var col = catagoryColourScale20(d.data.wgs[index]);
+        gradient.append("stop")
+          .attr("offset", (index * step * 100.0) + "%")
+          .attr("stop-color", col)
+          .attr("stop-opacity", 1);
+      }
+
+      return "url(#" + gid + ")";
+
+    } else if (d.data.wgs !== undefined && d.data.wgs.length == 1) {
+      return catagoryColourScale20(d.data.wgs[0]);
+    } else if (d.data.wg !== undefined && d.data.wg != -1) {
+      return catagoryColourScale20(d.data.wg);
+    } else {
+      return "white";
+    }
+  });
 }
 
 
@@ -370,19 +400,20 @@ function MergeTraceData(trace) {
       var CU = getiCU(wv.cu_id);
       if (!CU.data.wgs.includes(wgi)) CU.data.wgs.push(wgi);
       var simd = getSIMD(CU, wv.simd_id);
-   //  simd.data.wg = wgi;
+      //  simd.data.wg = wgi;
       if (!simd.data.wgs.includes(wgi)) simd.data.wgs.push(wgi);
       var lanes = getLane(simd, -1);
       var lni = wv.se_id;
       //for (var lni = 0; lni < lanes.length; lni++) {
-        lanes[lni].data.pc = wv.program_counter;
-        lanes[lni].data.wave = wv.wave_id;
-        if (lanes[lni].data.wg != -1) {
-          console.log("CLASH", wv.cu_id, wv.simd_id, lni, lanes[lni].data.wg, wgi);
-        }
-        lanes[lni].data.wg = wgi;
-        lanes[lni].data.occu = 1.0;
-     // }
+      lanes[lni].data.pc = wv.program_counter;
+      lanes[lni].data.wave = wv.wave_id;
+      if (lanes[lni].data.wg != -1) {
+        console.log("CLASH", wv.cu_id, wv.simd_id, lni, lanes[lni].data.wg, wgi);
+      }
+      lanes[lni].data.wg = wgi;
+      lanes[lni].data.occu = 1.0;
+      lanes[lni].data.asm = wv.asm;
+      // }
     }
   }
   console.log("Merged");
