@@ -41,3 +41,7 @@ function randRange(min, max) {
 function echo(e) {
   console.log(e);
 }
+
+isArray = function(a) {
+    return (!!a) && (a.constructor === Array);
+};

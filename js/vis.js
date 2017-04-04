@@ -392,7 +392,16 @@ function getLane(sm, id) {
   }
 }
 
-function MergeTraceData(trace) {
+function MergeTraceData(tracefile, id = 0) {
+  var trace;
+  if (isArray(tracefile)) {
+    console.log("IT's a multitrace");
+    trace = tracefile[id];
+  } else {
+    trace = tracefile;
+  }
+
+  //Fills in RootNode with our data
   for (var wgi = 0; wgi < trace.workgroups.length; wgi++) {
     var wg = trace.workgroups[wgi];
     for (var wvi = 0; wvi < wg.waves.length; wvi++) {
@@ -416,6 +425,7 @@ function MergeTraceData(trace) {
       // }
     }
   }
+
   console.log("Merged");
   //Calculate occupancy
   var gputalley = 0;

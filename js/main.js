@@ -13,7 +13,7 @@ $(document).ready(function() {
     INSTRUCTIONTYPEARR.push(INSTRUCTIONTYPE[propt]);
   }
   totalChartSpaceHeight = parseInt(d3.select("#outercontainer").style("height"), 10);
-    $("#filesDiv").hide();
+  $("#filesDiv").hide();
 });
 
 class ComputeUnitOccupancy {
@@ -61,14 +61,27 @@ function go2() {
 
 function ParseTrace(file) {
   TRACE = file;
- // CloseMemvis();
+  // CloseMemvis();
   //loadingDiv.show();
   //console.log(file.substring(0, 200));
   //parser = ParseTrace(file);
- // Init2();
- MergeTraceData(file);
+  // Init2();
+  MergeTraceData(TRACE);
 }
 
+var seek = 0;
+function rewind() {
+  seek--;
+  if (seek < 0) { seek = 0; }
+  MergeTraceData(TRACE, seek);
+  $("#frametext").text("Frame: " + seek);
+}
+function forward() {
+  seek++;
+  if (seek >= TRACE.length) { seek-- }
+  MergeTraceData(TRACE, seek);
+  $("#frametext").text("Frame: " + seek);
+}
 
 
 function ParseDevice(dev) {
@@ -147,6 +160,9 @@ function GetFilesList() {
   });*/
   $('<button/>').text("1490283906.json").click(function() {
     OpenFileFromXHR("runtime_data_waves_1490283906.json", false);
+  }).appendTo($("#filesDiv"));
+  $('<button/>').text("multi_step.json").click(function() {
+    OpenFileFromXHR("steps_runtime_data_waves_1490283906.json", false);
   }).appendTo($("#filesDiv"));
 }
 
